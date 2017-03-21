@@ -11,9 +11,11 @@ class Reversi(object):
 
     def __init__(self):
         self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
-        self.board[3][3], self.board[4][4] = Stone.WHITE, Stone.WHITE
-        self.board[3][4], self.board[4][3] = Stone.BLACK, Stone.BLACK
-        self.state = State.GAMEOVER
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2 - 1] = Stone.WHITE
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
+        self.state = State.PLAY
         self.turn = Stone.BLACK
         self.cpu_player = Stone.WHITE
 
