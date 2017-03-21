@@ -11,13 +11,10 @@ class Reversi(object):
 
     def __init__(self):
         self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
-        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2 - 1] = Stone.WHITE
-        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
-        self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
-        self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
         self.state = State.PLAY
         self.turn = Stone.BLACK
         self.cpu_player = Stone.WHITE
+        self.init_game()
 
     def change_turn(self):
         self.turn = self.get_enemy()
@@ -87,6 +84,15 @@ class Reversi(object):
                 if self.board[y][x] == Stone.WHITE:
                     count += 1
         return count
+
+    def init_game(self):
+        self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2 - 1] = Stone.WHITE
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
+        self.state = State.PLAY
+        self.turn = Stone.BLACK
 
     def is_pass(self):
         for y in range(SQ_NUM):
