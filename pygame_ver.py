@@ -15,6 +15,9 @@ class Game(object):
         pygame.init()
         screen = pygame.display.set_mode(SCR_RECT.size)
         self.reversi = reversiCore.Reversi()
+        self.black_img = pygame.image.load('img/black.png').convert_alpha()
+        self.white_img = pygame.image.load('img/white.png').convert_alpha()
+        self.reversi.state = reversiCore.State.GAMEOVER
         clock = pygame.time.Clock()
         while True:
             clock.tick(30)
@@ -36,13 +39,9 @@ class Game(object):
                 pygame.draw.rect(screen, (0, 0, 0),
                                  Rect(x * SQ_SIZE, y * SQ_SIZE, SQ_SIZE, SQ_SIZE), 1)
                 if self.reversi.board[y][x] == reversiCore.Stone.BLACK:
-                    pygame.draw.ellipse(screen, (0, 0, 0),
-                                        Rect(x * SQ_SIZE + 1, y * SQ_SIZE + 1,
-                                             SQ_SIZE - 1, SQ_SIZE - 1))
+                    screen.blit(self.black_img, (x * SQ_SIZE, y * SQ_SIZE))
                 elif self.reversi.board[y][x] == reversiCore.Stone.WHITE:
-                    pygame.draw.ellipse(screen, (255, 255, 255),
-                                        Rect(x * SQ_SIZE + 1, y * SQ_SIZE + 1,
-                                             SQ_SIZE - 1, SQ_SIZE - 1))
+                    screen.blit(self.white_img, (x * SQ_SIZE, y * SQ_SIZE))
 
     def draw_text(self, screen):
         font = pygame.font.SysFont(None, 25)
@@ -51,16 +50,15 @@ class Game(object):
             player = 'Black'
         else:
             player = 'White'
-        turn_text = 'CurrentPlayer: {}'.format(player)
-        score_text = 'B:{} W:{}'.format(self.reversi.get_black_score(),
-                                        self.reversi.get_white_score())
-        turn = font.render(turn_text, True, (0, 0, 0))
-        score = font.render(score_text, True, (0, 0, 0))
+        turn = font.render('CurrentPlayer: {}'.format(player), True, (0, 0, 0))
+        score = font.render('B:{} W:{}'.format(self.reversi.get_black_score(),
+                                               self.reversi.get_white_score()),
+                            True, (0, 0, 0))
         screen.blit(turn, (0, BOARD_SIZE))
-        screen.blit(score, (BOARD_SIZE - font.size(score_text)[0], BOARD_SIZE))
+        screen.blit(score, (BOARD_SIZE - score.get_width(), BOARD_SIZE))
 
     def draw_result(self, screen):
-        font = pygame.font.SysFont(None, 100)
+        font = pygame.font.SysFont(None, 80)
         s = ''
         black = self.reversi.get_black_score()
         white = self.reversi.get_white_score()
@@ -71,7 +69,8 @@ class Game(object):
         elif black == white:
             s = 'DROW!!'
         result = font.render(s, True, (255, 0, 0))
-        screen.blit(result, ((BOARD_SIZE - font.size(s)[0]) / 2, 0))
+        screen.blit(result, (((BOARD_SIZE - result.get_width()) / 2,
+                              (BOARD_SIZE - result.get_height()) / 2)))
 
     def event_handler(self):
         for event in pygame.event.get():
