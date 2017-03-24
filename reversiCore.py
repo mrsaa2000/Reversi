@@ -34,24 +34,10 @@ class Reversi(object):
         self.turn_action(y, x)
 
     def flip_board(self, y, x, directions):
-        """
-        指定された座標からひっくり返すことができる石を
-        全てひっくり返す
-        """
-        for direction in directions:
-            self.flip_line(y, x, direction)
-
-    def flip_line(self, y, x, direction):
-        """
-        指定された座標から一方向へ石をひっくり返す
-        """
-        dy, dx = direction
-        ny, nx = y + dy, x + dx
-        while True:
-            if self.board[ny][nx] == self.turn:
-                break
-            self.board[ny][nx] = self.turn
-            ny, nx = ny + dy, nx + dx
+        points = self.get_flip_points(y, x, directions)
+        for point in points:
+            y, x = point
+            self.board[y][x] = self.turn
 
     def get_enemy(self):
         enemy = None
@@ -60,6 +46,18 @@ class Reversi(object):
         else:
             enemy = Stone.BLACK
         return enemy
+
+    def get_flip_points(self, y, x, directions):
+        points = []
+        for direction in directions:
+            dy, dx = direction
+            ny, nx = y + dy, x + dx
+            while True:
+                if self.board[ny][nx] == self.turn:
+                    break
+                points.append((ny, nx))
+                ny, nx = ny + dy, nx + dx
+        return points
 
     def get_putable_points(self):
         points = []
