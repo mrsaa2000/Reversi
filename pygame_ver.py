@@ -1,49 +1,100 @@
 import pygame
 from pygame.locals import *
 import reversiCore
+import os
 import sys
+import threading
 
 
 SQ_SIZE = 50
 BOARD_SIZE = reversiCore.SQ_NUM * SQ_SIZE
 SCR_RECT = Rect(0, 0, reversiCore.SQ_NUM * SQ_SIZE, reversiCore.SQ_NUM * SQ_SIZE + 20)
+BLACK_IMG = pygame.image.load(os.path.join('img', 'black.png'))
+WHITE_IMG = pygame.image.load(os.path.join('img', 'white.png'))
+
+
+class FlipStone(pygame.sprite.Sprite):
+
+    speed = 3
+
+    def __init__(self, y, x, color):
+        super(FlipStone, self).__init__(self.containers)
+        self.before = WHITE_IMG
+        self.after = BLACK_IMG
+        if color == reversiCore.Stone.WHITE:
+            self.before = BLACK_IMG
+            self.after = WHITE_IMG
+        self.image = self.before
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.is_before = True  # 返す前か
+        self.rect = self.image.get_rect(topleft=(x * SQ_SIZE, y * SQ_SIZE))
+
+    def update(self):
+        if self.is_before:
+            self.rect.move_ip(self.speed / 2, 0)
+            if self.width == 1:
+                self.image = pygame.transform.scale(self.after, (self.width, self.height))
+                self.is_before = False
+            else:
+                self.width -= self.speed
+                if self.width <= 1:
+                    self.width = 1
+                self.image = pygame.transform.scale(self.before, (self.width, self.height))
+        else:
+            self.rect.move_ip(-self.speed / 2, 0)
+            if self.image.get_width() >= self.after.get_width():
+                self.before, self.after = self.after, self.before
+                self.image = self.before
+                super(FlipStone, self).kill()
+            else:
+                self.width += self.speed
+                self.image = pygame.transform.scale(self.after, (self.width, self.height))
 
 
 class Game(object):
 
     def __init__(self):
         pygame.init()
-        screen = pygame.display.set_mode(SCR_RECT.size)
-        self.reversi = reversiCore.Reversi()
-        self.black_img = pygame.image.load('img/black.png').convert_alpha()
-        self.white_img = pygame.image.load('img/white.png').convert_alpha()
-        self.reversi.state = reversiCore.State.GAMEOVER
+        self.screen = pygame.display.set_mode(SCR_RECT.size)
         clock = pygame.time.Clock()
+        self.reversi = reversiCore.Reversi()
+        # sprite group
+        self.all = pygame.sprite.RenderUpdates()
+        FlipStone.containers = self.all
+        self.flip_stones = [[None for x in range(reversiCore.SQ_NUM)]
+                            for y in range(reversiCore.SQ_NUM)]
         while True:
-            clock.tick(30)
+            clock.tick(60)
             self.event_handler()
-            self.draw(screen)
+            self.draw()
             pygame.display.update()
 
-    def draw(self, screen):
-        screen.fill((255, 255, 255))
-        self.draw_board(screen)
-        self.draw_text(screen)
+    def draw(self):
+        self.screen.fill((255, 255, 255))
+        self.draw_board()
+        self.draw_text()
+        self.all.draw(self.screen)
+        self.all.update()
         if self.reversi.state == reversiCore.State.GAMEOVER:
-            self.draw_result(screen)
+            self.draw_result()
 
-    def draw_board(self, screen):
-        pygame.draw.rect(screen, (40, 145, 30), Rect(0, 0, BOARD_SIZE, BOARD_SIZE))
+    def draw_board(self):
+        """盤面描画"""
+        pygame.draw.rect(self.screen, (40, 145, 30), Rect(0, 0, BOARD_SIZE, BOARD_SIZE))
         for y in range(reversiCore.SQ_NUM):
             for x in range(reversiCore.SQ_NUM):
-                pygame.draw.rect(screen, (0, 0, 0),
+                pygame.draw.rect(self.screen, (0, 0, 0),
                                  Rect(x * SQ_SIZE, y * SQ_SIZE, SQ_SIZE, SQ_SIZE), 1)
-                if self.reversi.board[y][x] == reversiCore.Stone.BLACK:
-                    screen.blit(self.black_img, (x * SQ_SIZE, y * SQ_SIZE))
-                elif self.reversi.board[y][x] == reversiCore.Stone.WHITE:
-                    screen.blit(self.white_img, (x * SQ_SIZE, y * SQ_SIZE))
+                # アニメーション中は表示しない
+                if not self.flip_stones[y][x] or not self.flip_stones[y][x].alive():
+                    if self.reversi.board[y][x] == reversiCore.Stone.BLACK:
+                        self.screen.blit(BLACK_IMG, (x * SQ_SIZE, y * SQ_SIZE))
+                    elif self.reversi.board[y][x] == reversiCore.Stone.WHITE:
+                        self.screen.blit(WHITE_IMG, (x * SQ_SIZE, y * SQ_SIZE))
 
-    def draw_text(self, screen):
+    def draw_text(self):
+        """現在のプレイヤーと石の数の表示"""
         font = pygame.font.SysFont(None, 25)
         player = ''
         if self.reversi.turn == reversiCore.Stone.BLACK:
@@ -54,10 +105,11 @@ class Game(object):
         score = font.render('B:{} W:{}'.format(self.reversi.get_black_score(),
                                                self.reversi.get_white_score()),
                             True, (0, 0, 0))
-        screen.blit(turn, (0, BOARD_SIZE))
-        screen.blit(score, (BOARD_SIZE - score.get_width(), BOARD_SIZE))
+        self.screen.blit(turn, (0, BOARD_SIZE))
+        self.screen.blit(score, (BOARD_SIZE - score.get_width(), BOARD_SIZE))
 
-    def draw_result(self, screen):
+    def draw_result(self):
+        """勝敗表示"""
         font = pygame.font.SysFont(None, 80)
         s = ''
         black = self.reversi.get_black_score()
@@ -69,8 +121,8 @@ class Game(object):
         elif black == white:
             s = 'DROW!!'
         result = font.render(s, True, (255, 0, 0))
-        screen.blit(result, (((BOARD_SIZE - result.get_width()) / 2,
-                              (BOARD_SIZE - result.get_height()) / 2)))
+        self.screen.blit(result, (((BOARD_SIZE - result.get_width()) / 2,
+                                   (BOARD_SIZE - result.get_height()) / 2)))
 
     def event_handler(self):
         for event in pygame.event.get():
@@ -79,10 +131,28 @@ class Game(object):
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = int(event.pos[0] // SQ_SIZE), int(event.pos[1] // SQ_SIZE)
-                self.reversi.turn_action(y, x)
+                self.turn_action(y, x)
                 if (self.reversi.state == reversiCore.State.PLAY and
                         self.reversi.turn == self.reversi.cpu_player):
-                    self.reversi.cpu()
+                    cpu = threading.Thread(target=self.cpu_action, name='cpu')
+                    cpu.start()
+
+    def turn_action(self, y, x):
+        directions = self.reversi.is_put(y, x)
+        if directions:
+            self.reversi.board[y][x] = self.reversi.turn
+            # flip
+            for flip_point in self.reversi.get_flip_points(y, x, directions):
+                f_y, f_x = flip_point
+                self.flip_stones[f_y][f_x] = FlipStone(f_y, f_x, self.reversi.turn)
+                self.reversi.board[f_y][f_x] = self.reversi.turn
+            self.reversi.check_gameover()
+            self.reversi.change_turn()
+
+    def cpu_action(self):
+        pygame.time.wait(1000)
+        y, x = self.reversi.cpu()
+        self.turn_action(y, x)
 
 
 if __name__ == '__main__':
