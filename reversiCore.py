@@ -31,7 +31,7 @@ class Reversi(object):
     def cpu(self):
         putable_points = self.get_putable_points()
         y, x = putable_points[random.randint(0, len(putable_points) - 1)]
-        self.turn_action(y, x)
+        return (y, x)
 
     def flip_board(self, y, x, directions):
         points = self.get_flip_points(y, x, directions)
