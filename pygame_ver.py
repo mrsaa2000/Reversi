@@ -70,6 +70,21 @@ class Game(object):
             self.draw()
             pygame.display.update()
 
+    def change_turn(self):
+        self.reversi.turn = self.reversi.get_enemy()
+        # パス
+        if self.reversi.is_pass():
+            self.reversi.turn = self.reversi.get_enemy()
+            # player側がパスされた場合
+            if self.reversi.turn == self.reversi.cpu_player:
+                cpu = threading.Thread(target=self.cpu_action, name='cpu')
+                cpu.start()
+
+    def cpu_action(self):
+        pygame.time.wait(1000)
+        y, x = self.reversi.cpu()
+        self.turn_action(y, x)
+
     def draw(self):
         self.screen.fill((255, 255, 255))
         self.draw_board()
@@ -147,12 +162,8 @@ class Game(object):
                 self.flip_stones[f_y][f_x] = FlipStone(f_y, f_x, self.reversi.turn)
                 self.reversi.board[f_y][f_x] = self.reversi.turn
             self.reversi.check_gameover()
-            self.reversi.change_turn()
-
-    def cpu_action(self):
-        pygame.time.wait(1000)
-        y, x = self.reversi.cpu()
-        self.turn_action(y, x)
+            if self.reversi.state == reversiCore.State.PLAY:
+                self.change_turn()
 
 
 if __name__ == '__main__':
