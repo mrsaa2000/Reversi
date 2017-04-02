@@ -3,7 +3,7 @@ import random
 
 
 SQ_NUM = 8  # COL,ROWの数
-State = enum.Enum('State', 'PLAY GAMEOVER')
+State = enum.Enum('State', 'START PLAY GAMEOVER')
 Stone = enum.Enum('Stone', 'EMPTY BLACK WHITE')
 
 
@@ -11,7 +11,7 @@ class Reversi(object):
 
     def __init__(self):
         self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
-        self.state = State.PLAY
+        self.state = State.START
         self.turn = Stone.BLACK
         self.cpu_player = Stone.WHITE
         self.init_game()
@@ -89,7 +89,7 @@ class Reversi(object):
         self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
         self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
         self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
-        self.state = State.PLAY
+        self.state = State.START
         self.turn = Stone.BLACK
 
     def is_pass(self):
