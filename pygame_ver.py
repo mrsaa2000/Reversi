@@ -150,7 +150,7 @@ class Game(object):
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = int(event.pos[0] // SQ_SIZE), int(event.pos[1] // SQ_SIZE)
-                if self.reversi.state == reversiCore.State.PLAY:
+                if self.reversi.state == reversiCore.State.START:
                     self.reversi.state = reversiCore.State.PLAY
                 self.turn_action(y, x)
                 if (self.reversi.state == reversiCore.State.PLAY and
