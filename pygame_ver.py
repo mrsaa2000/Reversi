@@ -125,7 +125,8 @@ class Game(object):
 
     def draw_result(self):
         """勝敗表示"""
-        font = pygame.font.SysFont(None, 80)
+        result_font = pygame.font.SysFont(None, 80)
+        replay_font = pygame.font.SysFont(None, 25)
         s = ''
         black = self.reversi.get_black_score()
         white = self.reversi.get_white_score()
@@ -135,9 +136,12 @@ class Game(object):
             s = 'WHITE WIN!!'
         elif black == white:
             s = 'DROW!!'
-        result = font.render(s, True, (255, 0, 0))
+        result = result_font.render(s, True, (255, 0, 0))
+        replay = replay_font.render('SpaceKey: Replay', True, (255, 0, 0))
         self.screen.blit(result, (((BOARD_SIZE - result.get_width()) / 2,
                                    (BOARD_SIZE - result.get_height()) / 2)))
+        self.screen.blit(replay, (((BOARD_SIZE - replay.get_width()) / 2,
+                                   ((BOARD_SIZE - result.get_height()) / 2 + 100))))
 
     def event_handler(self):
         for event in pygame.event.get():
@@ -151,6 +155,9 @@ class Game(object):
                         self.reversi.turn == self.reversi.cpu_player):
                     cpu = threading.Thread(target=self.cpu_action, name='cpu')
                     cpu.start()
+            if event.type == KEYDOWN and event.key == K_SPACE:
+                if self.reversi.state == reversiCore.State.GAMEOVER:
+                    self.reversi.init_game()
 
     def turn_action(self, y, x):
         directions = self.reversi.is_put(y, x)
