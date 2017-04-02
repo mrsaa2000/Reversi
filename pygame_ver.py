@@ -150,6 +150,8 @@ class Game(object):
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN and event.button == 1:
                 x, y = int(event.pos[0] // SQ_SIZE), int(event.pos[1] // SQ_SIZE)
+                if self.reversi.state == reversiCore.State.PLAY:
+                    self.reversi.state = reversiCore.State.PLAY
                 self.turn_action(y, x)
                 if (self.reversi.state == reversiCore.State.PLAY and
                         self.reversi.turn == self.reversi.cpu_player):
@@ -158,6 +160,15 @@ class Game(object):
             if event.type == KEYDOWN and event.key == K_SPACE:
                 if self.reversi.state == reversiCore.State.GAMEOVER:
                     self.reversi.init_game()
+                if self.reversi.state == reversiCore.State.START:
+                    self.select_after_attack()
+
+    def select_after_attack(self):
+        """player側が後攻(白)を選んだ場合"""
+        self.reversi.cpu_player = reversiCore.Stone.BLACK
+        self.reversi.state = reversiCore.State.PLAY
+        cpu = threading.Thread(target=self.cpu_action, name='cpu')
+        cpu.start()
 
     def turn_action(self, y, x):
         directions = self.reversi.is_put(y, x)
