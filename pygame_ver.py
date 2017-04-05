@@ -71,10 +71,10 @@ class Game(object):
             pygame.display.update()
 
     def change_turn(self):
-        self.reversi.turn = self.reversi.get_enemy()
+        self.reversi.turn = self.reversi.get_enemy(self.reversi.turn)
         # パス
         if self.reversi.is_pass():
-            self.reversi.turn = self.reversi.get_enemy()
+            self.reversi.turn = self.reversi.get_enemy(self.reversi.turn)
             # player側がパスされた場合
             if self.reversi.turn == self.reversi.cpu_player:
                 cpu = threading.Thread(target=self.cpu_action, name='cpu')
@@ -163,6 +163,9 @@ class Game(object):
             if event.type == KEYDOWN and event.key == K_RETURN:
                 if self.reversi.state == reversiCore.State.START:
                     self.select_after_attack()
+            if event.type == KEYDOWN and event.key == K_u:
+                if self.reversi.state == reversiCore.State.PLAY:
+                    self.undo_board()
 
     def select_after_attack(self):
         """player側が後攻(白)を選んだ場合"""
@@ -175,14 +178,21 @@ class Game(object):
         directions = self.reversi.is_put(y, x, self.reversi.turn)
         if directions:
             self.reversi.board[y][x] = self.reversi.turn
-            # flip
-            for flip_point in self.reversi.get_flip_points(y, x, directions):
+            flip_points = self.reversi.get_flip_points(y, x, directions)
+            self.reversi.undo.append(reversiCore.UndoInfo(y, x, flip_points))
+            for flip_point in flip_points:
                 f_y, f_x = flip_point
                 self.flip_stones[f_y][f_x] = FlipStone(f_y, f_x, self.reversi.turn)
                 self.reversi.board[f_y][f_x] = self.reversi.turn
             self.reversi.check_gameover()
             if self.reversi.state == reversiCore.State.PLAY:
                 self.change_turn()
+
+    def undo_board(self):
+        if len(self.reversi.undo) <= 1:
+            return
+        self.reversi.undo_board()
+        self.reversi.undo_board()
 
 
 if __name__ == '__main__':

@@ -7,10 +7,28 @@ State = enum.Enum('State', 'START PLAY GAMEOVER')
 Stone = enum.Enum('Stone', 'EMPTY BLACK WHITE')
 
 
+class UndoInfo(object):
+
+    def __init__(self, y, x, points):
+        self.y, self.x = y, x
+        self.points = points
+
+    def get_board(self, board):
+        board[self.y][self.x] = Stone.EMPTY
+        for point in self.points:
+            y, x = point
+            if board[y][x] == Stone.BLACK:
+                board[y][x] = Stone.WHITE
+            else:
+                board[y][x] = Stone.BLACK
+        return board
+
+
 class Reversi(object):
 
     def __init__(self):
         self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
+        self.undo = []
         self.state = State.START
         self.turn = Stone.BLACK
         self.cpu_player = Stone.WHITE
@@ -36,6 +54,7 @@ class Reversi(object):
         for point in points:
             y, x = point
             self.board[y][x] = self.turn
+        return points
 
     def get_enemy(self, color):
         enemy = None
@@ -130,7 +149,14 @@ class Reversi(object):
         directions = self.is_put(y, x, self.turn)
         if directions:
             self.board[y][x] = self.turn
-            self.flip_board(y, x, directions)
+            points = self.flip_board(y, x, directions)
+            self.undo.append(UndoInfo(y, x, points))
             self.check_gameover()
             if self.state == State.PLAY:
                 self.change_turn()
+
+    def undo_board(self):
+        if len(self.undo) == 0:
+            return
+        info = self.undo.pop()
+        self.board = info.get_board(self.board)
