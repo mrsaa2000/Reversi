@@ -18,7 +18,6 @@ class Reversi(object):
 
     def change_turn(self):
         self.turn = self.get_enemy(self.turn)
-        self.check_gameover()
         if self.is_pass() and self.state == State.PLAY:
             self.turn = self.get_enemy(self.turn)
 
