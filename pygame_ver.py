@@ -160,6 +160,7 @@ class Game(object):
             if event.type == KEYDOWN and event.key == K_SPACE:
                 if self.reversi.state == reversiCore.State.GAMEOVER:
                     self.reversi.init_game()
+            if event.type == KEYDOWN and event.key == K_RETURN:
                 if self.reversi.state == reversiCore.State.START:
                     self.select_after_attack()
 
@@ -171,7 +172,7 @@ class Game(object):
         cpu.start()
 
     def turn_action(self, y, x):
-        directions = self.reversi.is_put(y, x)
+        directions = self.reversi.is_put(y, x, self.reversi.turn)
         if directions:
             self.reversi.board[y][x] = self.reversi.turn
             # flip

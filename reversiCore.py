@@ -17,19 +17,18 @@ class Reversi(object):
         self.init_game()
 
     def change_turn(self):
-        self.turn = self.get_enemy()
-        if self.is_pass():
-            self.turn = self.get_enemy()
+        self.turn = self.get_enemy(self.turn)
+        self.check_gameover()
+        if self.is_pass() and self.state == State.PLAY:
+            self.turn = self.get_enemy(self.turn)
 
     def check_gameover(self):
-        for y in range(SQ_NUM):
-            for x in range(SQ_NUM):
-                if self.board[y][x] == Stone.EMPTY:
-                    return
-        self.state = State.GAMEOVER
+        if (len(self.get_putable_points(Stone.BLACK)) == 0 and
+                len(self.get_putable_points(Stone.WHITE)) == 0):
+            self.state = State.GAMEOVER
 
     def cpu(self):
-        putable_points = self.get_putable_points()
+        putable_points = self.get_putable_points(self.turn)
         y, x = putable_points[random.randint(0, len(putable_points) - 1)]
         return (y, x)
 
@@ -39,9 +38,9 @@ class Reversi(object):
             y, x = point
             self.board[y][x] = self.turn
 
-    def get_enemy(self):
+    def get_enemy(self, color):
         enemy = None
-        if self.turn == Stone.BLACK:
+        if color == Stone.BLACK:
             enemy = Stone.WHITE
         else:
             enemy = Stone.BLACK
@@ -59,11 +58,11 @@ class Reversi(object):
                 ny, nx = ny + dy, nx + dx
         return points
 
-    def get_putable_points(self):
+    def get_putable_points(self, color):
         points = []
         for y in range(SQ_NUM):
             for x in range(SQ_NUM):
-                if self.is_put(y, x):
+                if self.is_put(y, x, color):
                     points.append((y, x))
         return points
 
@@ -95,11 +94,11 @@ class Reversi(object):
     def is_pass(self):
         for y in range(SQ_NUM):
             for x in range(SQ_NUM):
-                if self.is_put(y, x):
+                if self.is_put(y, x, self.turn):
                     return False
         return True
 
-    def is_put(self, y, x):
+    def is_put(self, y, x, color):
         """
         石を置ける場合は石をひっくり返すことができる方向を返し、
         置けない場合は空のリストを返す
@@ -108,7 +107,7 @@ class Reversi(object):
         if self.board[y][x] != Stone.EMPTY:
             return directions
 
-        enemy = self.get_enemy()
+        enemy = self.get_enemy(color)
 
         dyx = [(-1, -1), (-1, 0), (-1, 1),
                (0, -1), (0, 1),
@@ -120,7 +119,7 @@ class Reversi(object):
             if self.board[ny][nx] == enemy:
                 ny, nx = ny + dy, nx + dx
                 while 0 <= ny < SQ_NUM and 0 <= nx < SQ_NUM:
-                    if self.board[ny][nx] == self.turn:
+                    if self.board[ny][nx] == color:
                         directions.append((dy, dx))
                         break
                     elif self.board[ny][nx] == Stone.EMPTY:
@@ -129,9 +128,10 @@ class Reversi(object):
         return directions
 
     def turn_action(self, y, x):
-        directions = self.is_put(y, x)
+        directions = self.is_put(y, x, self.turn)
         if directions:
             self.board[y][x] = self.turn
             self.flip_board(y, x, directions)
             self.check_gameover()
-            self.change_turn()
+            if self.state == State.PLAY:
+                self.change_turn()
