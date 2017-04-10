@@ -1,10 +1,21 @@
+import copy
 import enum
 import random
+import cpu
 
 
 SQ_NUM = 8  # COL,ROWの数
 State = enum.Enum('State', 'START PLAY GAMEOVER')
 Stone = enum.Enum('Stone', 'EMPTY BLACK WHITE')
+
+
+def get_enemy(color):
+    enemy = None
+    if color == Stone.BLACK:
+        enemy = Stone.WHITE
+    else:
+        enemy = Stone.BLACK
+    return enemy
 
 
 class UndoInfo(object):
@@ -24,53 +35,37 @@ class UndoInfo(object):
         return board
 
 
-class Reversi(object):
+class ReversiBoard(object):
 
     def __init__(self):
+        self.board = []
+        self.init_board()
+
+    def init_board(self):
         self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
-        self.undo = []
-        self.state = State.START
-        self.turn = Stone.BLACK
-        self.cpu_player = Stone.WHITE
-        self.init_game()
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2 - 1] = Stone.WHITE
+        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
+        self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
 
-    def change_turn(self):
-        self.turn = self.get_enemy(self.turn)
-        if self.is_pass() and self.state == State.PLAY:
-            self.turn = self.get_enemy(self.turn)
+    def copy(self):
+        copy_board = copy.deepcopy(self.board)
+        return copy_board
 
-    def check_gameover(self):
-        if (len(self.get_putable_points(Stone.BLACK)) == 0 and
-                len(self.get_putable_points(Stone.WHITE)) == 0):
-            self.state = State.GAMEOVER
-
-    def cpu(self):
-        putable_points = self.get_putable_points(self.turn)
-        y, x = putable_points[random.randint(0, len(putable_points) - 1)]
-        return (y, x)
-
-    def flip_board(self, y, x, directions):
-        points = self.get_flip_points(y, x, directions)
+    def flip_board(self, y, x, directions, color):
+        points = self.get_flip_points(y, x, directions, color)
         for point in points:
             y, x = point
-            self.board[y][x] = self.turn
+            self.board[y][x] = color
         return points
 
-    def get_enemy(self, color):
-        enemy = None
-        if color == Stone.BLACK:
-            enemy = Stone.WHITE
-        else:
-            enemy = Stone.BLACK
-        return enemy
-
-    def get_flip_points(self, y, x, directions):
+    def get_flip_points(self, y, x, directions, color):
         points = []
         for direction in directions:
             dy, dx = direction
             ny, nx = y + dy, x + dx
             while True:
-                if self.board[ny][nx] == self.turn:
+                if self.board[ny][nx] == color:
                     break
                 points.append((ny, nx))
                 ny, nx = ny + dy, nx + dx
@@ -84,35 +79,10 @@ class Reversi(object):
                     points.append((y, x))
         return points
 
-    def get_black_score(self):
-        count = 0
+    def is_pass(self, color):
         for y in range(SQ_NUM):
             for x in range(SQ_NUM):
-                if self.board[y][x] == Stone.BLACK:
-                    count += 1
-        return count
-
-    def get_white_score(self):
-        count = 0
-        for y in range(SQ_NUM):
-            for x in range(SQ_NUM):
-                if self.board[y][x] == Stone.WHITE:
-                    count += 1
-        return count
-
-    def init_game(self):
-        self.board = [[Stone.EMPTY for x in range(SQ_NUM)] for y in range(SQ_NUM)]
-        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2 - 1] = Stone.WHITE
-        self.board[SQ_NUM // 2 - 1][SQ_NUM // 2] = Stone.BLACK
-        self.board[SQ_NUM // 2][SQ_NUM // 2 - 1] = Stone.BLACK
-        self.board[SQ_NUM // 2][SQ_NUM // 2] = Stone.WHITE
-        self.state = State.START
-        self.turn = Stone.BLACK
-
-    def is_pass(self):
-        for y in range(SQ_NUM):
-            for x in range(SQ_NUM):
-                if self.is_put(y, x, self.turn):
+                if self.is_put(y, x, color):
                     return False
         return True
 
@@ -125,7 +95,7 @@ class Reversi(object):
         if self.board[y][x] != Stone.EMPTY:
             return directions
 
-        enemy = self.get_enemy(color)
+        enemy = get_enemy(color)
 
         dyx = [(-1, -1), (-1, 0), (-1, 1),
                (0, -1), (0, 1),
@@ -145,11 +115,53 @@ class Reversi(object):
                     ny, nx = ny + dy, nx + dx
         return directions
 
+
+class Reversi(object):
+
+    def __init__(self):
+        self.board = ReversiBoard()
+        self.undo = []
+        self.state = State.START
+        self.turn = Stone.BLACK
+        self.cpu_player = Stone.WHITE
+        self.cpu = cpu.Cpu()
+        self.init_game()
+
+    def init_game(self):
+        self.undo = []
+        self.state = State.START
+        self.turn = Stone.BLACK
+        self.board.init_board()
+        self.cpu.init_cpu(self.cpu_player)
+
+    def change_turn(self):
+        self.turn = self.get_enemy(self.turn)
+        if self.board.is_pass(self.turn) and self.state == State.PLAY:
+            self.turn = self.get_enemy(self.turn)
+
+    def check_gameover(self):
+        if (len(self.board.get_putable_points(Stone.BLACK)) == 0 and
+                len(self.board.get_putable_points(Stone.WHITE)) == 0):
+            self.state = State.GAMEOVER
+
+    def cpu(self):
+        putable_points = self.board.get_putable_points(self.turn)
+        y, x = putable_points[random.randint(0, len(putable_points) - 1)]
+        return (y, x)
+
+    def get_score(self, color):
+        count = 0
+        for y in range(SQ_NUM):
+            for x in range(SQ_NUM):
+                if self.board.board[y][x] == color:
+                    count += 1
+        return count
+
     def turn_action(self, y, x):
-        directions = self.is_put(y, x, self.turn)
+        directions = self.board.is_put(y, x, self.turn)
         if directions:
-            self.board[y][x] = self.turn
-            points = self.flip_board(y, x, directions)
+            self.board.board[y][x] = self.turn
+            points = self.board.flip_board(y, x, directions)
             self.undo.append(UndoInfo(y, x, points))
             self.check_gameover()
             if self.state == State.PLAY:
