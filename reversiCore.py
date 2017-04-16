@@ -1,6 +1,5 @@
 import copy
 import enum
-import random
 import cpu
 
 
@@ -132,22 +131,18 @@ class Reversi(object):
         self.state = State.START
         self.turn = Stone.BLACK
         self.board.init_board()
+        self.cpu_player = Stone.WHITE
         self.cpu.init_cpu(self.cpu_player)
 
     def change_turn(self):
-        self.turn = self.get_enemy(self.turn)
+        self.turn = get_enemy(self.turn)
         if self.board.is_pass(self.turn) and self.state == State.PLAY:
-            self.turn = self.get_enemy(self.turn)
+            self.turn = get_enemy(self.turn)
 
     def check_gameover(self):
         if (len(self.board.get_putable_points(Stone.BLACK)) == 0 and
                 len(self.board.get_putable_points(Stone.WHITE)) == 0):
             self.state = State.GAMEOVER
-
-    def cpu(self):
-        putable_points = self.board.get_putable_points(self.turn)
-        y, x = putable_points[random.randint(0, len(putable_points) - 1)]
-        return (y, x)
 
     def get_score(self, color):
         count = 0
@@ -161,7 +156,7 @@ class Reversi(object):
         directions = self.board.is_put(y, x, self.turn)
         if directions:
             self.board.board[y][x] = self.turn
-            points = self.board.flip_board(y, x, directions)
+            points = self.board.flip_board(y, x, directions, self.turn)
             self.undo.append(UndoInfo(y, x, points))
             self.check_gameover()
             if self.state == State.PLAY:

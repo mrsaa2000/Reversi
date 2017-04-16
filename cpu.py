@@ -1,9 +1,10 @@
+import random
 import reversiCore
 
 
 MAX_VALUE = 9999
 MIN_VALUE = -9999
-DEPTH = 3
+DEPTH = 4
 
 
 class Cpu(object):
@@ -15,14 +16,14 @@ class Cpu(object):
     def init_cpu(self, color):
         self.color = color
 
-    def next_move(self, board, turn, depth=DEPTH):
+    # alphabeta
+    def next_move(self, board, turn, depth=DEPTH, alpha=MIN_VALUE, beta=MAX_VALUE):
         if depth == 0:
             return self.value_board(board, turn)
 
         best_y, best_x = 0, 0
-        value = MIN_VALUE
-        if turn != self.color:
-            value = MAX_VALUE
+        alpha = -9999
+        beta = 9999
 
         undo_board = None
         points = board.get_putable_points(turn)
@@ -32,20 +33,34 @@ class Cpu(object):
                 directions = board.is_put(y, x, turn)
                 flip_points = board.flip_board(y, x, directions, turn)
                 undo_board = reversiCore.UndoInfo(y, x, flip_points)
-                temp = self.next_move(board, reversiCore.get_enemy(turn), depth - 1)
+                temp = self.next_move(board, reversiCore.get_enemy(turn), depth - 1,
+                                      alpha, beta)
                 board.board = undo_board.get_board(board.board)
-                if ((self.color == turn and temp > value) or
-                        (self.color != turn and temp < value)):
-                    value = temp
-                    best_y, best_x = y, x
+                if turn == self.color:
+                    if temp >= alpha:
+                        alpha = temp
+                        best_y = y
+                        best_x = x
+                    if alpha > beta:
+                        return alpha
+                else:
+                    if temp <= beta:
+                        beta = temp
+                        best_y = y
+                        best_x = x
+                    if alpha > beta:
+                        return beta
         else:
-            temp = self.next_move(board, reversiCore.get_enemy(turn), depth - 1)
+            temp = self.next_move(board, reversiCore.get_enemy(turn), depth - 1,
+                                  alpha, beta)
             return temp
 
         if depth == DEPTH:
             return best_y, best_x
-        elif value != MAX_VALUE and value != MIN_VALUE:
-            return value
+        elif turn == self.color:
+            return alpha
+        elif turn != self.color:
+            return beta
 
     def value_board(self, board, turn):
         enemy = reversiCore.get_enemy(turn)
@@ -65,3 +80,17 @@ class Cpu(object):
                 elif board.board[y][x] == enemy:
                     value -= eval_value[y][x]
         return value
+
+
+class Level0(object):
+
+    def __init__(self):
+        self.color = None
+
+    def init_cpu(self, color):
+        self.color = color
+
+    def next_move(self, board):
+        putable_points = board.get_putable_points(self.color)
+        y, x = putable_points[random.randint(0, len(putable_points) - 1)]
+        return (y, x)
